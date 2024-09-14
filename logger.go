@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"context"
 	"os"
 	"runtime"
 	"strconv"
@@ -35,10 +36,23 @@ const (
 // logrus entry
 var e *logrus.Entry
 
+// context key
+type ContextKey string
+
+const (
+	TraceId ContextKey = "traceId"
+)
+
 func init() {
 	logrusSingleton.Do(func() {
 		l = logrus.New()
 		l.SetReportCaller(true)
+
+		// pretty print
+		envPrettyLog := os.Getenv("PRETTY_PRINT_LOGGER")
+		isPrettyLog, _ := strconv.ParseBool(envPrettyLog)
+
+		// formater
 		l.Formatter = &logrus.JSONFormatter{
 			DisableTimestamp: false,
 			CallerPrettyfier: func(f *runtime.Frame) (function string, file string) {
@@ -47,6 +61,7 @@ func init() {
 				funcname := s[len(s)-1]
 				return funcname, f.File + ":" + strconv.Itoa(f.Line)
 			},
+			PrettyPrint: isPrettyLog,
 		}
 		// output
 		l.SetOutput(os.Stdout)
@@ -121,3 +136,51 @@ func Info(args ...interface{})  { e.Info(args...) }
 func Debug(args ...interface{}) { e.Debug(args...) }
 func Warn(args ...interface{})  { e.Warn(args...) }
 func Error(args ...interface{}) { e.Error(args...) }
+
+// ERROR CONTEXT
+func ErrorWithContext(ctx context.Context, request, response interface{}, message ...interface{}) {
+	traceId, _ := ctx.Value(TraceId).(string)
+	fields := logrus.Fields{
+		"trace_id":     traceId,
+		"request":      request,
+		"response":     response,
+		"service_name": os.Getenv("SERVICE_NAME"),
+	}
+	e.WithFields(fields).Error(message...)
+}
+
+// INFO WITH CONTEXT
+func InfoWithContext(ctx context.Context, request, response interface{}, message ...interface{}) {
+	traceId, _ := ctx.Value(TraceId).(string)
+	fields := logrus.Fields{
+		"trace_id":     traceId,
+		"request":      request,
+		"response":     response,
+		"service_name": os.Getenv("SERVICE_NAME"),
+	}
+	e.WithFields(fields).Info(message...)
+}
+
+// DEBUG WITH CONTEXT
+func DebugWithContext(ctx context.Context, request, response interface{}, message ...interface{}) {
+	traceId, _ := ctx.Value(TraceId).(string)
+	fields := logrus.Fields{
+		"trace_id":     traceId,
+		"request":      request,
+		"response":     response,
+		"service_name": os.Getenv("SERVICE_NAME"),
+	}
+	e.WithFields(fields).Debug(message...)
+}
+
+// WARNING WITH CONTEXT
+func WarnWithContext(ctx context.Context, request, response interface{}, message ...interface{}) {
+	traceId, _ := ctx.Value(TraceId).(string)
+	fields := logrus.Fields{
+		"trace_id":     traceId,
+		"request":      request,
+		"response":     response,
+		"service_name": os.Getenv("SERVICE_NAME"),
+	}
+	e.WithFields(fields).Warn(message...)
+}

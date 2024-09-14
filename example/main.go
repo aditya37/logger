@@ -1,26 +1,30 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 
 	"github.com/aditya37/logger"
-	"go.elastic.co/apm"
 )
 
 func init() {
 	log.Println(os.Getenv("ELASTIC_APM_SERVICE_NAME"))
 }
-func main() {
-	tx := apm.DefaultTracer.StartTransaction(os.Getenv("ELASTIC_APM_SERVICE_NAME"), "test logget")
-	defer tx.End()
-	logger.Error("error")
-	defer func() {
-		if v := recover(); v != nil {
-			e := apm.DefaultTracer.Recovered(v)
-			e.SetTransaction(tx) // or e.SetSpan(span)
-			e.Send()
-		}
-	}()
 
+type Body struct {
+	Name string
+}
+
+func main() {
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, logger.ContextKey(logger.TraceId), "111222121")
+	body := Body{
+		Name: "anis",
+	}
+	logger.ErrorWithContext(ctx, body, nil, "ganbate")
+}
+
+func Agus() {
+	logger.ErrorWithContext(context.Background(), nil, "ganbate")
 }
